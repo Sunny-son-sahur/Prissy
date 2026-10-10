@@ -1,0 +1,16 @@
+[DEFAULT]
+# set to false and fill TEST_GUILD_ID to sync globally instead of a test guild
+TESTING = true
+TEST_GUILD_ID = 0
+
+# discord bot token
+TOKEN =
+
+# top.gg token — optional, leave blank to disable topgg posting
+TOPGG_TOKEN =
+
+# pxsl api key — required unless TESTING = true
+PXSL_API_KEY =
+
+# your discord user id — gates the /admin owner-only commands
+owner = 0

@@ -1,0 +1,607 @@
+from discord import app_commands, Interaction
+from discord.ext import commands
+import discord
+import json
+import math
+import time
+import configparser
+from cogs.theming import get_fail_colour, get_success_colour
+import asyncio
+import sqlite3
+
+ini = configparser.ConfigParser()
+ini.read("config.ini")
+
+# defaults to 0 (nobody) if unset — keeps the cog loadable without the key
+OWNERID = int(ini["DEFAULT"].get("owner", "0"))
+
+def owner_check():
+    async def predicate(interaction: Interaction):
+        return interaction.user.id == OWNERID
+
+    return app_commands.check(predicate)
+
+class Admin(commands.GroupCog, group_name="admin"):
+    def __init__(self, bot):
+        self.bot = bot
+
+    def save_data(self):
+        with open("data.json", "w") as f:
+            json.dump(self.bot.data, f, indent=4)
+
+    group_1 = app_commands.Group(
+        name="1",
+        description="Admin - page 1"
+    )
+
+    @group_1.command(
+        name="addadmin",
+        description="(OWNER) give someone admin"
+    )
+    @owner_check()
+    async def addadmin(
+        self,
+        interaction: Interaction,
+        user: discord.User
+    ):
+        if user.id in self.bot.data.get("admins", []):
+            return await interaction.response.send_message(
+                embed=discord.Embed(
+                    title="🚫 Already Admin",
+                    description=f"{user.mention} is already an admin.",
+                    color=get_fail_colour()
+                ),
+                ephemeral=True
+            )
+
+        self.bot.data.setdefault("admins", []).append(user.id)
+        self.save_data()
+
+        await interaction.response.send_message(
+            embed=discord.Embed(
+                title="✅ Admin Added",
+                description=f"{user.mention} is now an admin.",
+                color=get_success_colour()
+            ),
+            ephemeral=True
+        )
+
+    @group_1.command(
+        name="removeadmin",
+        description="(OWNER) remove admin"
+    )
+    @owner_check()
+    async def removeadmin(
+        self,
+        interaction: Interaction,
+        user: discord.User
+    ):
+        if user.id not in self.bot.data.get("admins", []):
+            return await interaction.response.send_message(
+                embed=discord.Embed(
+                    title="🚫 Not Admin",
+                    description=f"{user.mention} is not an admin.",
+                    color=get_fail_colour()
+                ),
+                ephemeral=True
+            )
+
+        self.bot.data["admins"].remove(user.id)
+        self.save_data()
+
+        await interaction.response.send_message(
+            embed=discord.Embed(
+                title="🗑️ Admin Removed",
+                description=f"{user.mention} is no longer an admin.",
+                color=get_success_colour()
+            ),
+            ephemeral=True
+        )
+
+    @group_1.command(
+        name="listadmins",
+        description="(OWNER) list admins"
+    )
+    @owner_check()
+    async def listadmins(
+        self,
+        interaction: Interaction
+    ):
+        admins = self.bot.data.get("admins", [])
+
+        if not admins:
+            return await interaction.response.send_message(
+                embed=discord.Embed(
+                    title="👮 Admin List",
+                    description="No admins are currently set.",
+                    color=get_fail_colour()
+                ),
+                ephemeral=True
+            )
+
+        mentions = [f"<@{uid}>" for uid in admins]
+
+        await interaction.response.send_message(
+            embed=discord.Embed(
+                title="👮 Admin List",
+                description="\n".join(mentions),
+                color=get_success_colour()
+            ),
+            ephemeral=True
+        )
+
+    @group_1.command(
+        name="license",
+        description="(OWNER) send license troll message"
+    )
+    @owner_check()
+    @app_commands.guild_only()
+    async def license(
+        self,
+        interaction: Interaction,
+        channel: discord.TextChannel
+    ):
+        if (
+            interaction.user.id not in self.bot.data.get("admins", [])
+            and interaction.user.id not in self.bot.data.get("owners", [])
+        ):
+            return await interaction.response.send_message(
+                embed=discord.Embed(
+                    title="🚫 No Permission",
+                    description="You are not allowed to use this command.",
+                    color=get_fail_colour()
+                ),
+                ephemeral=True
+            )
+
+        class RenewView(discord.ui.View):
+            def __init__(self):
+                super().__init__(timeout=60)
+
+            @discord.ui.button(
+                label="Renew License",
+                style=discord.ButtonStyle.red
+            )
+            async def renew(
+                self,
+                interaction_btn: Interaction,
+                button: discord.ui.Button
+            ):
+                await interaction_btn.message.delete()
+
+                await interaction_btn.response.send_message(
+                    embed=discord.Embed(
+                        title="😂 Trolled",
+                        description="haha lol trolled by the bot admins imagine",
+                        color=get_success_colour()
+                    ),
+                    ephemeral=True
+                )
+
+                self.stop()
+
+        embed = discord.Embed(
+            title="⚠️ License Expired",
+            description="Your license is outdated.\nClick below to renew it.",
+            color=get_fail_colour()
+        )
+
+        try:
+            await channel.send(
+                embed=embed,
+                view=RenewView()
+            )
+
+            await interaction.response.send_message(
+                embed=discord.Embed(
+                    title="📩 License Sent",
+                    description=f"Sent to {channel.mention}",
+                    color=get_success_colour()
+                ),
+                ephemeral=True
+            )
+
+        except discord.Forbidden:
+            await interaction.response.send_message(
+                embed=discord.Embed(
+                    title="🚫 Missing Permissions",
+                    description="I can't send messages in that channel.",
+                    color=get_fail_colour()
+                ),
+                ephemeral=True
+            )
+
+    @group_1.command(
+        name="give",
+        description="(OWNER) give money"
+    )
+    @owner_check()
+    @app_commands.guild_only()
+    async def give(
+        self,
+        interaction: Interaction,
+        user: discord.User,
+        amount: int
+    ):
+        if amount <= 0:
+            return await interaction.response.send_message(
+                embed=discord.Embed(
+                    title="🚫 Invalid Amount",
+                    description="Amount must be greater than 0.",
+                    color=get_fail_colour()
+                ),
+                ephemeral=True
+            )
+
+        economy = self.bot.get_cog("Economy")
+
+        if not economy:
+            return await interaction.response.send_message(
+                embed=discord.Embed(
+                    title="🚫 Error",
+                    description="Economy cog not loaded.",
+                    color=get_fail_colour()
+                ),
+                ephemeral=True
+            )
+
+        row = economy.get_user(
+            interaction.guild.id,
+            user.id
+        )
+
+        target = economy.user_dict(row)
+        target["balance"] += amount
+        economy.update_user(target)
+
+        await interaction.response.send_message(
+            embed=discord.Embed(
+                title="💰 Money Given",
+                description=f"Gave **{amount} coins** to {user.mention}",
+                color=get_success_colour()
+            ),
+            ephemeral=True
+        )
+
+    @group_1.command(
+        name="take",
+        description="(OWNER) remove money"
+    )
+    @owner_check()
+    @app_commands.guild_only()
+    async def take(
+        self,
+        interaction: Interaction,
+        user: discord.User,
+        amount: int
+    ):
+        if amount <= 0:
+            return await interaction.response.send_message(
+                embed=discord.Embed(
+                    title="🚫 Invalid Amount",
+                    description="Amount must be greater than 0.",
+                    color=get_fail_colour()
+                ),
+                ephemeral=True
+            )
+
+        economy = self.bot.get_cog("Economy")
+
+        if not economy:
+            return await interaction.response.send_message(
+                embed=discord.Embed(
+                    title="🚫 Error",
+                    description="Economy cog not loaded.",
+                    color=get_fail_colour()
+                ),
+                ephemeral=True
+            )
+
+        row = economy.get_user(
+            interaction.guild.id,
+            user.id
+        )
+
+        target = economy.user_dict(row)
+
+        removed = min(amount, target["balance"])
+        target["balance"] -= removed
+
+        economy.update_user(target)
+
+        await interaction.response.send_message(
+            embed=discord.Embed(
+                title="💸 Money Removed",
+                description=f"Removed **{removed} coins** from {user.mention}",
+                color=get_fail_colour()
+            ),
+            ephemeral=True
+        )
+
+    @group_1.command(
+        name="dm",
+        description="(OWNER) DM a user"
+    )
+    @owner_check()
+    async def dm(
+        self,
+        interaction: Interaction,
+        user: discord.User,
+        title: str,
+        message: str
+    ):
+        try:
+            embed = discord.Embed(
+                title=title,
+                description=message,
+                color=get_success_colour()
+            )
+
+            await user.send(embed=embed)
+
+            await interaction.response.send_message(
+                embed=discord.Embed(
+                    title="📩 DM Sent",
+                    description=f"Sent to {user.mention}",
+                    color=get_success_colour()
+                ),
+                ephemeral=True
+            )
+
+        except discord.Forbidden:
+            await interaction.response.send_message(
+                embed=discord.Embed(
+                    title="🚫 DM Failed",
+                    description="User has DMs disabled.",
+                    color=get_fail_colour()
+                ),
+                ephemeral=True
+            )
+
+    @group_1.command(
+        name="servers",
+        description="(OWNER/ADMIN) list all bot servers"
+    )
+    @owner_check()
+    async def servers(
+        self,
+        interaction: Interaction
+    ):
+        guilds = sorted(
+            self.bot.guilds,
+            key=lambda g: g.member_count or 0,
+            reverse=True
+        )
+
+        per_page = 10
+        pages = max(1, math.ceil(len(guilds) / per_page))
+        page = 0
+
+        def make_embed(page: int):
+            start = page * per_page
+            end = start + per_page
+            chunk = guilds[start:end]
+
+            desc = ""
+
+            for i, g in enumerate(chunk, start=start + 1):
+                desc += (
+                    f"**{i}. {g.name}**\n"
+                    f"👥 {g.member_count} members\n"
+                    f"🆔 `{g.id}`\n\n"
+                )
+
+            embed = discord.Embed(
+                title=f"🗂️ Server List ({page + 1}/{pages})",
+                description=desc or "No servers found.",
+                color=get_success_colour()
+            )
+
+            embed.set_footer(
+                text=f"Total servers: {len(guilds)}"
+            )
+
+            return embed
+
+        class ServerView(discord.ui.View):
+            def __init__(self):
+                super().__init__(timeout=60)
+                self.page = 0
+
+            async def update(
+                self,
+                interaction_btn: Interaction
+            ):
+                await interaction_btn.response.edit_message(
+                    embed=make_embed(self.page),
+                    view=self
+                )
+
+            @discord.ui.button(
+                label="⬅️ Prev",
+                style=discord.ButtonStyle.secondary
+            )
+            async def prev(
+                self,
+                interaction_btn: Interaction,
+                button: discord.ui.Button
+            ):
+                if self.page > 0:
+                    self.page -= 1
+
+                await self.update(interaction_btn)
+
+            @discord.ui.button(
+                label="➡️ Next",
+                style=discord.ButtonStyle.secondary
+            )
+            async def next(
+                self,
+                interaction_btn: Interaction,
+                button: discord.ui.Button
+            ):
+                if self.page < pages - 1:
+                    self.page += 1
+
+                await self.update(interaction_btn)
+
+        await interaction.response.send_message(
+            embed=make_embed(page),
+            view=ServerView(),
+            ephemeral=True
+        )
+
+    @group_1.command(
+        name="ccu",
+        description="(OWNER/ADMIN) View CCU information"
+    )
+    @owner_check()
+    async def ccu(
+        self,
+        interaction: Interaction
+    ):
+        now = time.time()
+
+        expired = [
+            uid
+            for uid, last_seen in self.bot.active_users.items()
+            if now - last_seen > 300
+        ]
+
+        for uid in expired:
+            del self.bot.active_users[uid]
+
+        embed = discord.Embed(
+            title="📊 Current CCU",
+            colour=get_success_colour()
+        )
+
+        embed.add_field(
+            name="Current",
+            value=f"**{len(self.bot.active_users)}** users",
+            inline=True
+        )
+
+        embed.add_field(
+            name="Peak Since Restart",
+            value=f"**{self.bot.peak_ccu}** users",
+            inline=True
+        )
+
+        await interaction.response.send_message(
+            embed=embed,
+            ephemeral=True
+        )
+
+    @group_1.command(
+        name="announce",
+        description="Send an announcement to every server's Community Updates channel"
+    )
+    @owner_check()
+    async def announce(
+        self,
+        interaction: discord.Interaction,
+        message: str
+    ):
+        await interaction.response.send_message(
+            embed=discord.Embed(
+                title="📢 Announcement",
+                description="Sending announcement to all server Community Updates channels...",
+                color=get_success_colour()
+            ),
+            ephemeral=True
+        )
+
+        announcement = (
+            f"{message}\n\n"
+            "━━━━━━━━━━━━━━━━━━━━\n"
+            "ℹ️ You can opt out of these update messages by using "
+            "`/basic 1 optout`."
+        )
+
+        sent = 0
+        skipped = 0
+        failed = 0
+
+        for guild in self.bot.guilds:
+            with sqlite3.connect("annc.db") as conn:
+                opted_out = conn.execute(
+                    "SELECT 1 FROM announcement_optouts WHERE guild_id = ?",
+                    (guild.id,)
+                ).fetchone()
+
+            if opted_out:
+                skipped += 1
+                print(
+                    f"[ANNOUNCE] Opted out: "
+                    f"{guild.name} ({guild.id})"
+                )
+                continue
+
+            channel = guild.public_updates_channel
+
+            if channel is None:
+                skipped += 1
+                continue
+
+            me = guild.me
+
+            if me is None:
+                skipped += 1
+                continue
+
+            permissions = channel.permissions_for(me)
+
+            if not permissions.send_messages:
+                skipped += 1
+                continue
+
+            try:
+                await channel.send(announcement)
+
+                sent += 1
+
+                print(
+                    f"[ANNOUNCE] Sent to {guild.name} "
+                    f"#{channel.name}"
+                )
+
+            except discord.Forbidden:
+                failed += 1
+
+                print(
+                    f"[ANNOUNCE] Forbidden: "
+                    f"{guild.name} #{channel.name}"
+                )
+
+            except discord.HTTPException as e:
+                failed += 1
+
+                print(
+                    f"[ANNOUNCE] Failed: "
+                    f"{guild.name} ({e})"
+                )
+
+            await asyncio.sleep(0.5)
+
+        print(
+            f"[ANNOUNCE] Finished | "
+            f"Sent: {sent} | "
+            f"Skipped: {skipped} | "
+            f"Failed: {failed}"
+        )
+
+        await interaction.edit_original_response(
+            embed=discord.Embed(
+                title="📢 Announcement Complete",
+                description=(
+                    f"Successfully sent to **{sent}** servers.\n\n"
+                    f"⏭️ Skipped: **{skipped}**\n"
+                    f"❌ Failed: **{failed}**"
+                ),
+                color=get_success_colour()
+            )
+        )
+
+async def setup(bot):
+    await bot.add_cog(Admin(bot))
