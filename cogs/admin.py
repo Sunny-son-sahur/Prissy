@@ -12,12 +12,26 @@ import sqlite3
 ini = configparser.ConfigParser()
 ini.read("config.ini")
 
-# defaults to 0 (nobody) if unset — keeps the cog loadable without the key
-OWNERID = int(ini["DEFAULT"].get("owner", "0"))
+# role id that grants access to the owner-only /admin commands.
+# defaults to 0 (nobody) if unset — keeps the cog loadable without the key.
+ADMIN_ROLE_ID = int(ini["DEFAULT"].get("admin_role", "0"))
 
 def owner_check():
     async def predicate(interaction: Interaction):
-        return interaction.user.id == OWNERID
+        # the bot's application owner always gets through (anti-lockout)
+        app_owner = getattr(interaction.client, "owner_id", None)
+        if app_owner and interaction.user.id == app_owner:
+            return True
+
+        # otherwise: caller must hold the configured admin role
+        if ADMIN_ROLE_ID == 0:
+            return False
+
+        member = interaction.member
+        if member is None:
+            return False
+
+        return any(role.id == ADMIN_ROLE_ID for role in member.roles)
 
     return app_commands.check(predicate)
 

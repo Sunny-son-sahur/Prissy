@@ -6,14 +6,11 @@ TEST_GUILD_ID = 0
 # discord bot token
 TOKEN =
 
-# top.gg token — optional, leave blank to disable topgg posting
-TOPGG_TOKEN =
-
-# pxsl api key — required unless TESTING = true
-PXSL_API_KEY =
-
-# your discord user id — gates the /admin owner-only commands
-owner = 0
+# role id that can use the owner-only /admin commands.
+# in Discord: Server Settings > Roles > (right-click a role) > Copy Role ID
+# (enable Developer Mode first: Settings > Advanced > Developer Mode)
+# 0 = nobody (except the bot's application owner)
+admin_role = 0
 
 # ffmpeg paths — optional.
 # by default the bot finds ffmpeg/ffprobe on your PATH (recommended:

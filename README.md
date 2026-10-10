@@ -98,15 +98,11 @@ python launcher.py
 TESTING = true
 TEST_GUILD_ID = 0
 TOKEN =            # your bot token
-TOPGG_TOKEN =      # optional
-PXSL_API_KEY =     # required unless TESTING = true
-owner = 0          # your discord user id, for /admin
+admin_role = 0     # role id allowed to use /admin commands
 ```
 
 - `TESTING = true` syncs commands to `TEST_GUILD_ID` only (instant). Set to `false` for global sync (can take up to an hour).
-- `TOPGG_TOKEN` is optional — leave blank to disable top.gg posting.
-- `PXSL_API_KEY` is only required when `TESTING = false` (it gates the stats/command upload to the pxsl API).
-- `owner` gates the owner-only `/admin` commands.
+- `admin_role` is a Discord **role ID** — anyone holding that role can use the owner-only `/admin` commands. Enable Developer Mode (Settings → Advanced) and copy a role's ID. The bot's application owner always has access regardless.
 
 ## 📄 License
 
