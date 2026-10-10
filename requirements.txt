@@ -9,4 +9,3 @@ whois
 mathparse
 python-dateutil
 yt-dlp
-opencv-python

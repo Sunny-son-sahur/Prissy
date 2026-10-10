@@ -14,3 +14,10 @@ PXSL_API_KEY =
 
 # your discord user id — gates the /admin owner-only commands
 owner = 0
+
+# ffmpeg paths — optional.
+# by default the bot finds ffmpeg/ffprobe on your PATH (recommended:
+# `winget install ffmpeg` on Windows, then they resolve automatically).
+# only fill these in if ffmpeg is NOT on your PATH.
+# FFMPEG_PATH =
+# FFPROBE_PATH =

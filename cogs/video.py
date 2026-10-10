@@ -8,9 +8,26 @@ import tempfile
 import shutil
 import random
 import subprocess
+import configparser
 from cogs.theming import get_fail_colour, get_success_colour
 import math
 from PIL import Image
+
+
+def _resolve_ffmpeg(tool):
+    """Find ffmpeg/ffprobe without hardcoding one user's install path.
+
+    order: config.ini override -> PATH (shutil.which) -> bare name
+    (subprocess does its own PATH lookup as a last resort).
+    """
+    ini = configparser.ConfigParser()
+    ini.read("config.ini")
+
+    override = ini["DEFAULT"].get(f"{tool.upper()}_PATH", "")
+    if override and os.path.exists(override):
+        return override
+
+    return shutil.which(tool) or tool
 
 
 class Video(commands.GroupCog, group_name="video"):
@@ -23,8 +40,8 @@ class Video(commands.GroupCog, group_name="video"):
     MAX_DOWNLOAD_SIZE = 50 * 1024 * 1024
     MAX_DURATION = 30
     MAX_OUTPUT_SIZE = 50 * 1024 * 1024
-    FFMPEG_PATH = r"C:\Users\pxslb\AppData\Local\Microsoft\WinGet\Packages\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\ffmpeg-9.0.1-full_build\bin\ffmpeg.exe"
-    FFPROBE_PATH = r"C:\Users\pxslb\AppData\Local\Microsoft\WinGet\Packages\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\ffmpeg-9.0.1-full_build\bin\ffprobe.exe"
+    FFMPEG_PATH = _resolve_ffmpeg("ffmpeg")
+    FFPROBE_PATH = _resolve_ffmpeg("ffprobe")
 
     def __init__(self, bot):
         self.bot = bot

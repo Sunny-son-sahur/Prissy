@@ -73,13 +73,23 @@ The code may depend on:
 
 You are welcome to look through the code and contribute, but getting your own instance running is not guaranteed.
 
-## 🚀 Running
+## 🚀 Running (Windows)
 
-```bash
+Prerequisites: [Python 3.10+](https://python.org) (check "Add to PATH" on install) and [ffmpeg](https://ffmpeg.org) on PATH.
+
+```bat
+winget install ffmpeg
+git clone https://github.com/Sunny-son-sahur/Prissy.git
+cd Prissy
 pip install -r requirements.txt
-cp config.ini.example config.ini   # then fill in TOKEN
-python launcher.py                  # or: python bot.py
+copy config.ini.example config.ini
+notepad config.ini
+python launcher.py
 ```
+
+`launcher.py` reinstalls deps and auto-restarts the bot if it crashes. To run once without the restart loop: `python bot.py`.
+
+> If `ffmpeg` isn't on your PATH, set `FFMPEG_PATH` / `FFPROBE_PATH` in `config.ini` (see the example). Linux/macOS: `cp config.ini.example config.ini` and install ffmpeg via your package manager.
 
 `config.ini`:
 
@@ -90,11 +100,13 @@ TEST_GUILD_ID = 0
 TOKEN =            # your bot token
 TOPGG_TOKEN =      # optional
 PXSL_API_KEY =     # required unless TESTING = true
+owner = 0          # your discord user id, for /admin
 ```
 
 - `TESTING = true` syncs commands to `TEST_GUILD_ID` only (instant). Set to `false` for global sync (can take up to an hour).
 - `TOPGG_TOKEN` is optional — leave blank to disable top.gg posting.
 - `PXSL_API_KEY` is only required when `TESTING = false` (it gates the stats/command upload to the pxsl API).
+- `owner` gates the owner-only `/admin` commands.
 
 ## 📄 License
 
