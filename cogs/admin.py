@@ -23,12 +23,14 @@ def owner_check():
         if app_owner and interaction.user.id == app_owner:
             return True
 
-        # otherwise: caller must hold the configured admin role
+        # otherwise: caller must hold the configured admin role.
+        # note: discord.py 2.x has no Interaction.member — in a guild,
+        # interaction.user IS a Member; in a DM it's a plain User (no roles).
         if ADMIN_ROLE_ID == 0:
             return False
 
-        member = interaction.member
-        if member is None:
+        member = interaction.user
+        if not isinstance(member, discord.Member):
             return False
 
         return any(role.id == ADMIN_ROLE_ID for role in member.roles)
