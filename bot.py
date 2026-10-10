@@ -10,7 +10,7 @@ import os
 import json
 import time
 import configparser
-from cogs.theming import get_success_colour
+from cogs.theming import get_success_colour, THEMES
 
 os.makedirs("db", exist_ok=True)
 
@@ -156,7 +156,6 @@ class Prissy(commands.AutoShardedBot):
         print(
             f"[STATUS UPDATE] "
             f"Guilds: {guild_count} | "
-            f"Members: {total_members} | "
             f"Shards: {self.shard_count}"
         )
 
@@ -187,6 +186,22 @@ def extract_interaction_options(options):
 async def on_ready():
     print(f"[READY] Logged in as {bot.user}")
     print("Prissy is alive 😎")
+
+    # self-heal: a pre-fix run may have left a seasonal username stuck on the
+    # account. if the current name is any themed variant, revert to "Prissy".
+    # only fires when the name actually matches a theme, so a manual rename
+    # is never touched.
+    themed_names = {
+        t["name"] for t in THEMES.values() if t["name"] != "Prissy"
+    }
+
+    if bot.user.name in themed_names:
+        try:
+            await bot.user.edit(username="Prissy")
+            print(f"[THEMING] Reverted seasonal name -> Prissy")
+        except discord.HTTPException as e:
+            # username edits are rate-limited (~2/2h) — retry next boot
+            print(f"[THEMING] Couldn't revert name (rate-limited?): {e}")
 
 @bot.event
 async def on_interaction(interaction: discord.Interaction):
