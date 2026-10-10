@@ -18,22 +18,44 @@ ADMIN_ROLE_ID = int(ini["DEFAULT"].get("admin_role", "0"))
 
 def owner_check():
     async def predicate(interaction: Interaction):
-        # the bot's application owner always gets through (anti-lockout)
-        app_owner = getattr(interaction.client, "owner_id", None)
-        if app_owner and interaction.user.id == app_owner:
-            return True
+        # the bot's application owner always gets through (anti-lockout).
+        # owner_id is unset unless passed to the Bot(), so use is_owner(),
+        # which fetches application_info() once then caches into owner_ids.
+        try:
+            if await interaction.client.is_owner(interaction.user):
+                return True
+        except Exception:
+            pass
 
         # otherwise: caller must hold the configured admin role.
         # note: discord.py 2.x has no Interaction.member — in a guild,
         # interaction.user IS a Member; in a DM it's a plain User (no roles).
         if ADMIN_ROLE_ID == 0:
+            print(
+                f"[ADMIN CHECK] denied {interaction.user} "
+                f"(no admin_role configured)"
+            )
             return False
 
         member = interaction.user
         if not isinstance(member, discord.Member):
+            print(
+                f"[ADMIN CHECK] denied {interaction.user} "
+                f"(DM / not a Member)"
+            )
             return False
 
-        return any(role.id == ADMIN_ROLE_ID for role in member.roles)
+        has_role = any(role.id == ADMIN_ROLE_ID for role in member.roles)
+
+        if not has_role:
+            role_ids = [r.id for r in member.roles]
+            print(
+                f"[ADMIN CHECK] denied {interaction.user} "
+                f"(missing role {ADMIN_ROLE_ID}) | "
+                f"their roles: {role_ids}"
+            )
+
+        return has_role
 
     return app_commands.check(predicate)
 
