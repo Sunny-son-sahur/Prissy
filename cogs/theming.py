@@ -84,61 +84,14 @@ class Theming(commands.Cog):
         self.update_theme.cancel()
 
     async def apply_theme(self):
+        # identity theming (seasonal username/avatar/banner) is disabled —
+        # the bot keeps its own name/avatar. the seasonal *colours* still
+        # work via get_success_colour()/get_fail_colour(), which cogs read
+        # straight from THEMES. this now just tracks state so the loop is
+        # a no-op instead of editing the bot's identity every midnight.
         now = datetime.datetime.now(datetime.timezone.utc)
-        date = now.date()
-        theme = get_theme()
-
-        theme_changed = self.applied_theme != theme
-
-        if self.current_date == date and not theme_changed:
-            return
-
-        self.current_date = date
-
-        name = THEMES[theme]["name"]
-        avatar_file = THEMES[theme]["avatar"]
-        banner_file = THEMES[theme]["banner"]
-
-        if self.bot.user.name != name:
-            try:
-                await self.bot.user.edit(username=name)
-                print(f"[THEMING] Updated name to {name}")
-            except discord.HTTPException as e:
-                print(f"[THEMING] Failed to update name: {e}")
-
-        if theme_changed:
-            try:
-                with open(avatar_file, "rb") as f:
-                    avatar = f.read()
-
-                await self.bot.user.edit(avatar=avatar)
-                print(f"[THEMING] Updated avatar for {theme}")
-
-            except (FileNotFoundError, OSError):
-                # assets/ isn't shipped — skip avatar, don't crash the loop
-                print(
-                    f"[THEMING] Avatar asset missing "
-                    f"({avatar_file}), skipping"
-                )
-            except discord.HTTPException as e:
-                print(f"[THEMING] Failed to update avatar: {e}")
-
-            try:
-                with open(banner_file, "rb") as f:
-                    banner = f.read()
-
-                await self.bot.user.edit(banner=banner)
-                print(f"[THEMING] Updated banner for {theme}")
-
-            except (FileNotFoundError, OSError):
-                print(
-                    f"[THEMING] Banner asset missing "
-                    f"({banner_file}), skipping"
-                )
-            except discord.HTTPException as e:
-                print(f"[THEMING] Failed to update banner: {e}")
-
-        self.applied_theme = theme
+        self.current_date = now.date()
+        self.applied_theme = get_theme()
 
     @tasks.loop(
         time=datetime.time(

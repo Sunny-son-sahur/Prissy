@@ -30,7 +30,7 @@ class WelcomeView(discord.ui.View):
             discord.ui.Button(
                 label="Join the Community",
                 emoji="💬",
-                url="https://discord.gg/YtQdrkxfg7"
+                url="https://discord.gg/KbYKSTHR5h"
             )
         )
 
@@ -599,7 +599,7 @@ class Basic(commands.GroupCog, group_name="basic"):
             title="Thank you so much for wanting to support me 💜",
             description=(
                 "Check out the links below:\n"
-                "[💬 Join the Discord](https://discord.gg/YtQdrkxfg7)\n"
+                "[💬 Join the Discord](https://discord.gg/KbYKSTHR5h)\n"
                 "[🌐 Visit the Website](https://prissy.pxsl.dev/)\n"
                 "[💜 Support Us](https://pxsl.dev/thanks/)"
             ),

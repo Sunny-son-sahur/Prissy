@@ -48,7 +48,7 @@ class PromoPatch(commands.Cog):
             title=random.choice(self.titles),
             description=(
                 f"{random.choice(self.messages)}\n\n"
-                "[💬 Join the Discord](https://discord.gg/YtQdrkxfg7)\n"
+                "[💬 Join the Discord](https://discord.gg/KbYKSTHR5h)\n"
                 "[🌐 Visit the Website](https://prissy.pxsl.dev/)\n"
                 "[💜 Support Us](https://pxsl.dev/thanks/)"
             ),

@@ -9,7 +9,6 @@ import asyncio
 import os
 import json
 import time
-import itertools
 import configparser
 from cogs.theming import get_success_colour
 
@@ -145,28 +144,13 @@ class Prissy(commands.AutoShardedBot):
         print("[BOOT] Status loop starting...")
         self.statusloop.start()
 
-    status_cycle = itertools.cycle([
-        "👀 prissy in {guild_count:,} servers!",
-        "🌐 https://prissy.pxsl.dev/",
-        "🗣️ https://discord.gg/YtQdrkxfg7",
-        "💜 https://pxsl.dev/thanks/"
-    ])
-
     @tasks.loop(seconds=5)
     async def statusloop(self):
         guild_count = len(self.guilds)
 
-        total_members = sum(
-            guild.member_count or 0
-            for guild in self.guilds
+        activity = discord.CustomActivity(
+            name=f"👀 prissy in {guild_count:,} servers!"
         )
-
-        status = next(self.status_cycle).format(
-            guild_count=guild_count,
-            total_members=total_members
-        )
-
-        activity = discord.CustomActivity(name=status)
         await self.change_presence(activity=activity)
 
         print(
@@ -248,7 +232,7 @@ class WelcomeView(discord.ui.View):
             discord.ui.Button(
                 label="Join the Community",
                 emoji="💬",
-                url="https://discord.gg/YtQdrkxfg7"
+                url="https://discord.gg/KbYKSTHR5h"
             )
         )
 
