@@ -2,17 +2,6 @@
 
 A powerful, feature-packed Discord bot — merging the server-management depth of **Crumb** with the entertainment breadth of **Clanker**.
 
-🌐 Website: https://prissy.pxsl.dev/
-
-## 🔗 Bot Links
-
-You can invite Prissy or view more information here:
-
-- Website: https://prissy.pxsl.dev/
-- Discord: https://discord.gg/YtQdrkxfg7
-
-Prissy is completely free to use, with no paid features or subscriptions.
-
 ## 🧩 What's Inside
 
 Prissy is the union of two bots, so it carries both feature sets:
